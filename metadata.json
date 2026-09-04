@@ -1,0 +1,6 @@
+{
+  "name": "KITCHEN PRO - E-Commerce, POS & Inventory Management System",
+  "description": "Commercial-grade E-Commerce platform, POS billing counter, real-time multi-channel inventory, and GST invoicing system for Kitchen Pro appliances and kitchenware.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
