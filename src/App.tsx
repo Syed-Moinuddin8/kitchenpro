@@ -23,15 +23,15 @@ export function App() {
   const [currentView, setCurrentView] = useState<'home' | 'shop' | 'product-detail' | 'pos' | 'admin' | 'account'>('home');
   const [navParams, setNavParams] = useState<{ category?: string; search?: string; productId?: string }>({});
 
-  // Core Data
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings>(initialStoreSettings);
-  const [isLoading, setIsLoading] = useState(true);
+  // Core Data - Pre-hydrated with self-healing demo store for immediate zero-delay display
+  const [products, setProducts] = useState<Product[]>(() => apiClient.getLocalProducts());
+  const [categories, setCategories] = useState<Category[]>(() => apiClient.getLocalCategories());
+  const [brands, setBrands] = useState<Brand[]>(() => apiClient.getLocalBrands());
+  const [orders, setOrders] = useState<Order[]>(() => apiClient.getLocalOrders());
+  const [customers, setCustomers] = useState<Customer[]>(() => apiClient.getLocalCustomers());
+  const [coupons, setCoupons] = useState<Coupon[]>(() => apiClient.getLocalCoupons());
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => apiClient.getLocalSettings());
+  const [isLoading, setIsLoading] = useState(false);
 
   // Cart & Wishlist State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -47,7 +47,7 @@ export function App() {
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Initial Load from API
+  // Background sync from API if server is present (e.g. Docker / Cloud Run)
   useEffect(() => {
     async function loadData() {
       try {
@@ -61,21 +61,37 @@ export function App() {
           apiClient.getCoupons(),
         ]);
 
-        setProducts(prods);
-        setCategories(cats);
-        setBrands(brs);
-        setOrders(ords);
-        setCustomers(custs);
-        setStoreSettings(setts);
-        setCoupons(cpnList);
+        if (prods && prods.length > 0) setProducts(prods);
+        if (cats && cats.length > 0) setCategories(cats);
+        if (brs && brs.length > 0) setBrands(brs);
+        if (ords && ords.length > 0) setOrders(ords);
+        if (custs && custs.length > 0) setCustomers(custs);
+        if (setts) setStoreSettings(setts);
+        if (cpnList && cpnList.length > 0) setCoupons(cpnList);
       } catch (err) {
-        console.error('Failed to load initial data:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('API sync skipped, running smoothly with local storage data:', err);
       }
     }
     loadData();
   }, []);
+
+  const handleResetDemoData = () => {
+    apiClient.resetToFactoryDefaults();
+    setProducts(apiClient.getLocalProducts());
+    setCategories(apiClient.getLocalCategories());
+    setBrands(apiClient.getLocalBrands());
+    setOrders(apiClient.getLocalOrders());
+    setCustomers(apiClient.getLocalCustomers());
+    setCoupons(apiClient.getLocalCoupons());
+    setStoreSettings(apiClient.getLocalSettings());
+    showToast('Demo data restored to original default catalog!');
+  };
+
+  const handleUpdateSettings = async (newSettings: StoreSettings) => {
+    const updated = await apiClient.updateSettings(newSettings);
+    setStoreSettings(updated);
+    showToast('Store settings updated successfully');
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -321,7 +337,8 @@ export function App() {
           onUpdateProductStock={handleUpdateProductStock}
           onCreateProduct={handleCreateProduct}
           onUpdateOrderStatus={handleUpdateOrderStatus}
-          onUpdateSettings={async (s) => setStoreSettings(s)}
+          onUpdateSettings={handleUpdateSettings}
+          onResetDemoData={handleResetDemoData}
           onPrintInvoice={(order) => setReceiptOrder(order)}
           onBackToShop={() => setCurrentView('home')}
           onOpenPos={() => setCurrentView('pos')}

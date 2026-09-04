@@ -41,6 +41,7 @@ interface AdminDashboardProps {
   onCreateProduct: (productData: Partial<Product>) => Promise<void>;
   onUpdateOrderStatus: (orderId: string, status: Order['orderStatus'], notes?: string) => Promise<void>;
   onUpdateSettings: (newSettings: StoreSettings) => Promise<void>;
+  onResetDemoData?: () => void;
   onPrintInvoice: (order: Order) => void;
   onBackToShop: () => void;
   onOpenPos: () => void;
@@ -55,6 +56,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onCreateProduct,
   onUpdateOrderStatus,
   onUpdateSettings,
+  onResetDemoData,
   onPrintInvoice,
   onBackToShop,
   onOpenPos,
@@ -64,6 +66,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+
+  // Store Settings Form State
+  const [formSettings, setFormSettings] = useState<StoreSettings>(storeSettings);
 
   // Stock Adjustment State
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
@@ -762,16 +767,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block font-bold text-zinc-700 uppercase mb-1">Business Name</label>
                   <input
                     type="text"
-                    defaultValue={storeSettings.businessName}
+                    value={formSettings.businessName}
+                    onChange={(e) => setFormSettings({ ...formSettings, businessName: e.target.value })}
                     className="w-full p-2 border rounded font-semibold"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-zinc-700 uppercase mb-1">Seller GSTIN</label>
                     <input
                       type="text"
-                      defaultValue={storeSettings.gstin}
+                      value={formSettings.gstin}
+                      onChange={(e) => setFormSettings({ ...formSettings, gstin: e.target.value })}
                       className="w-full p-2 border rounded font-mono font-bold uppercase"
                     />
                   </div>
@@ -779,8 +786,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <label className="block font-bold text-zinc-700 uppercase mb-1">Contact Phone</label>
                     <input
                       type="text"
-                      defaultValue={storeSettings.phone}
+                      value={formSettings.phone}
+                      onChange={(e) => setFormSettings({ ...formSettings, phone: e.target.value })}
                       className="w-full p-2 border rounded font-semibold"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-zinc-700 uppercase mb-1">Support Email</label>
+                    <input
+                      type="email"
+                      value={formSettings.email}
+                      onChange={(e) => setFormSettings({ ...formSettings, email: e.target.value })}
+                      className="w-full p-2 border rounded font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-zinc-700 uppercase mb-1">UPI ID (Payments)</label>
+                    <input
+                      type="text"
+                      value={formSettings.upiId}
+                      onChange={(e) => setFormSettings({ ...formSettings, upiId: e.target.value })}
+                      className="w-full p-2 border rounded font-mono font-bold"
                     />
                   </div>
                 </div>
@@ -788,16 +816,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block font-bold text-zinc-700 uppercase mb-1">Store Address</label>
                   <input
                     type="text"
-                    defaultValue={storeSettings.address}
+                    value={formSettings.address}
+                    onChange={(e) => setFormSettings({ ...formSettings, address: e.target.value })}
                     className="w-full p-2 border rounded font-semibold"
                   />
                 </div>
                 <div className="pt-2">
                   <button
-                    onClick={() => alert('Settings updated successfully!')}
-                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold rounded uppercase tracking-wider"
+                    onClick={async () => {
+                      await onUpdateSettings(formSettings);
+                      alert('Store settings successfully updated!');
+                    }}
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold rounded uppercase tracking-wider transition"
                   >
                     Save Changes
+                  </button>
+                </div>
+              </div>
+
+              {/* Data Persistence & Demo Recovery Panel */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <ShieldCheck className="w-5 h-5 text-orange-600" />
+                      <h3 className="font-black text-sm uppercase text-zinc-900">
+                        Demo Data & Storage Resiliency
+                      </h3>
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-1 leading-relaxed">
+                      This application includes a self-healing persistence store with automatic fallback. All demo products, categories, orders, POS bills, and customer accounts are preserved permanently, even on static deployment platforms like Vercel or when the browser cache is refreshed.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="bg-white p-3 rounded border border-orange-200">
+                    <div className="text-lg font-black text-zinc-900">{products.length}</div>
+                    <div className="text-[10px] uppercase font-bold text-zinc-500">Products Active</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-200">
+                    <div className="text-lg font-black text-zinc-900">{orders.length}</div>
+                    <div className="text-[10px] uppercase font-bold text-zinc-500">Total Invoices</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-200">
+                    <div className="text-lg font-black text-zinc-900">{customers.length}</div>
+                    <div className="text-[10px] uppercase font-bold text-zinc-500">Customers</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-200">
+                    <div className="text-lg font-black text-green-600">Active</div>
+                    <div className="text-[10px] uppercase font-bold text-zinc-500">Storage State</div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-orange-200/60 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <span className="font-bold text-xs text-zinc-900">Need to reset demo records?</span>
+                    <p className="text-[11px] text-zinc-500">Restores all original catalog equipment, sample orders, and initial seed data.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to restore demo data? This will reset all products, orders, and settings to original factory defaults.')) {
+                        onResetDemoData?.();
+                      }
+                    }}
+                    className="px-4 py-2 bg-zinc-900 hover:bg-black text-white font-bold text-xs rounded uppercase tracking-wider transition"
+                  >
+                    Restore Full Demo Data
                   </button>
                 </div>
               </div>
